@@ -4,10 +4,6 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 3.0"
     }
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.0"
@@ -17,10 +13,6 @@ terraform {
 
 provider "azurerm" {
   features {}
-}
-
-provider "aws" {
-  region = var.aws_region
 }
 
 resource "random_id" "suffix" {
@@ -33,15 +25,17 @@ resource "azurerm_resource_group" "rg" {
   location = var.azure_location
 }
 
-# 2. AWS Resource: S3 Bucket
-# We use the random suffix to ensure global uniqueness for the bucket name
-resource "aws_s3_bucket" "bucket" {
-  bucket = "${var.project_name}-bucket-${random_id.suffix.hex}"
+# 2. Azure Resource: Storage Account
+# We use the random suffix to ensure global uniqueness for the storage account name
+resource "azurerm_storage_account" "st" {
+  name                     = "st${replace(var.project_name, "-", "")}${random_id.suffix.hex}"
+  resource_group_name      = azurerm_resource_group.rg.name
+  location                 = azurerm_resource_group.rg.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
 
   tags = {
     Environment = "Lab"
     ManagedBy   = "Terraform"
-    # Cross-Cloud Dependency: Referencing Azure Resource Group Name
-    AzureSourceRG = azurerm_resource_group.rg.name
   }
 }
